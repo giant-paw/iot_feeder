@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Feeder Ultimate</title>
+    <title>Smart Feeder Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -19,7 +19,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h1 class="text-2xl font-bold tracking-wide">Smart Feeder</h1>
-                    <p class="text-blue-200 text-xs">Galon Le Minerale Edition</p>
+                    <p class="text-blue-200 text-xs">Control System</p>
                 </div>
                 <div class="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full border border-white/20">
                     <div class="relative flex h-3 w-3">
@@ -54,31 +54,6 @@
                     </button>
                 @endif
             </form>
-
-            <div class="bg-white rounded-2xl p-4 shadow-md border border-gray-100">
-                <div class="flex justify-between items-end mb-2">
-                    <span class="text-xs font-bold text-gray-500 uppercase">Sisa Pakan Galon</span>
-                    <span class="text-xs font-bold text-blue-600">
-                        @php
-                            $persen = 0;
-                            if($device->setting->max_capacity > 0) {
-                                $persen = round(($device->setting->current_capacity / $device->setting->max_capacity) * 100);
-                            }
-                        @endphp
-                        {{ $persen }}%
-                    </span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2 overflow-hidden">
-                    <div class="bg-gradient-to-r from-blue-400 to-blue-600 h-2.5 rounded-full transition-all duration-1000" 
-                         style="width: {{ $persen }}%"></div>
-                </div>
-                <form action="{{ route('device.refill', $device->id) }}" method="POST" class="text-right">
-                    @csrf
-                    <button type="submit" class="text-[10px] text-blue-500 hover:text-blue-700 underline font-bold cursor-pointer">
-                        <i class="fas fa-sync-alt"></i> Isi Ulang Penuh
-                    </button>
-                </form>
-            </div>
 
             <div class="bg-white rounded-3xl p-6 shadow-md border border-gray-100 text-center relative overflow-hidden">
                 @if($device->setting->emergency_stop)
@@ -115,17 +90,17 @@
                     </form>
                     <p class="text-[10px] text-gray-400 mt-3">Tekan untuk pakan instan</p>
                 @endif
-
-                @if(session('success'))
-                    <div class="mt-4 text-green-600 text-xs font-bold bg-green-50 py-2 rounded-lg border border-green-100">
-                        <i class="fas fa-check"></i> {{ session('success') }}
-                    </div>
-                @endif
-                @if(session('error'))
-                    <div class="mt-4 text-red-600 text-xs font-bold bg-red-50 py-2 rounded-lg border border-red-100">
-                        <i class="fas fa-times"></i> {{ session('error') }}
-                    </div>
-                @endif
+                
+                 @if(session('success'))
+                 <div class="mt-4 text-green-600 text-xs font-bold bg-green-50 py-2 rounded-lg border border-green-100">
+                     <i class="fas fa-check"></i> {{ session('success') }}
+                 </div>
+                 @endif
+                 @if(session('error'))
+                     <div class="mt-4 text-red-600 text-xs font-bold bg-red-50 py-2 rounded-lg border border-red-100">
+                         <i class="fas fa-times"></i> {{ session('error') }}
+                     </div>
+                 @endif
             </div>
 
             <div class="bg-white rounded-3xl p-6 shadow-md border border-gray-100">
@@ -178,22 +153,55 @@
                 </form>
             </div>
 
-            <div class="bg-white rounded-3xl p-6 shadow-md border border-gray-100">
+            <div class="bg-white rounded-3xl p-6 shadow-md border border-gray-100 relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-blue-100 px-3 py-1 rounded-bl-xl text-[10px] font-bold text-blue-600">
+                    SMART CALC
+                </div>
+
                 <h3 class="font-bold text-gray-700 text-sm mb-4 flex items-center gap-2">
-                    <i class="fas fa-sliders-h text-orange-500"></i> Konfigurasi
+                    <i class="fas fa-calculator text-orange-500"></i> Atur Pakan (Gram)
                 </h3>
-                <form action="{{ route('device.update', $device->id) }}" method="POST" class="grid grid-cols-2 gap-3">
+                
+                <form action="{{ route('device.update', $device->id) }}" method="POST" class="space-y-4">
                     @csrf
-                    <div>
-                        <label class="text-[9px] uppercase font-bold text-gray-400 block mb-1">Durasi (Detik)</label>
-                        <input type="number" name="duration" value="{{ $device->setting->feed_duration }}" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-center font-bold text-sm focus:ring-blue-500 outline-none">
+                    
+                    <div class="bg-gray-50 p-3 rounded-xl border border-gray-200">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[10px] uppercase font-bold text-gray-500">Kecepatan Alat</label>
+                            <span class="text-[9px] bg-gray-200 px-2 rounded text-gray-500 cursor-help" title="Lakukan tes 5 detik, timbang hasilnya, lalu bagi 5">? Info</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="flow_rate" name="flow_rate" value="{{ $device->setting->flow_rate }}" 
+                                class="w-full bg-white border border-gray-300 rounded-lg p-2 text-center font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none" oninput="hitungDurasi()">
+                            <span class="text-xs font-bold text-gray-400 w-16">Gram/Dtk</span>
+                        </div>
                     </div>
+
                     <div>
-                        <label class="text-[9px] uppercase font-bold text-gray-400 block mb-1">Sudut Servo</label>
-                        <input type="number" name="angle" value="{{ $device->setting->servo_angle_open }}" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-center font-bold text-sm focus:ring-blue-500 outline-none">
+                        <label class="text-[10px] uppercase font-bold text-gray-400 block mb-1">Target Sekali Makan</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="target_gram" name="target_gram" 
+                                value="{{ $device->setting->feed_duration * $device->setting->flow_rate }}" 
+                                class="w-full bg-blue-50 border border-blue-200 text-blue-900 rounded-lg p-2 text-center font-bold text-lg focus:ring-2 focus:ring-blue-500 outline-none" oninput="hitungDurasi()">
+                            <span class="text-xs font-bold text-gray-400 w-16">Gram</span>
+                        </div>
                     </div>
-                    <button class="col-span-2 mt-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold py-2 rounded-lg transition">
-                        SIMPAN PERUBAHAN
+
+                    <div class="flex items-center justify-between bg-orange-50 px-4 py-2 rounded-lg border border-orange-100">
+                        <span class="text-[10px] text-orange-500 font-bold">Otomatis Set Durasi:</span>
+                        <div class="flex items-end gap-1">
+                            <span id="hasil_detik" class="font-mono font-bold text-xl text-orange-600">{{ $device->setting->feed_duration }}</span>
+                            <span class="text-[10px] text-orange-400 mb-1">Detik</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[9px] uppercase font-bold text-gray-400 block mb-1">Sudut Servo Buka</label>
+                        <input type="number" name="angle" value="{{ $device->setting->servo_angle_open }}" class="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-center font-bold text-sm">
+                    </div>
+
+                    <button class="w-full mt-2 bg-gray-800 hover:bg-black text-white text-xs font-bold py-3 rounded-xl transition shadow-lg">
+                        SIMPAN PENGATURAN
                     </button>
                 </form>
             </div>
@@ -214,5 +222,20 @@
 
         </div>
     </div>
+
+    <script>
+        function hitungDurasi() {
+            // Ambil nilai dari input
+            let rate = parseFloat(document.getElementById('flow_rate').value) || 1;
+            let gram = parseFloat(document.getElementById('target_gram').value) || 0;
+            
+            // Hitung: Gram dibagi Kecepatan = Detik
+            // Math.ceil untuk membulatkan ke atas
+            let detik = Math.ceil(gram / rate);
+            
+            // Tampilkan hasil
+            document.getElementById('hasil_detik').innerText = detik;
+        }
+    </script>
 </body>
 </html>

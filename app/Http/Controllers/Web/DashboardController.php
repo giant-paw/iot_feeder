@@ -83,16 +83,23 @@ class DashboardController extends Controller
         $device = Device::findOrFail($id);
 
         $request->validate([
-            'duration' => 'required|numeric|min:1|max:60',
-            'angle' => 'required|numeric|min:0|max:180',
+            'target_gram' => 'required|numeric|min:1', // Input Baru (Gram)
+            'flow_rate'   => 'required|numeric|min:1', // Input Baru (Kalibrasi)
+            'angle'       => 'required|numeric|min:0|max:180',
         ]);
 
+        // --- RUMUS OTOMATIS (Gram -> Detik) ---
+        // Contoh: 1500 gram / 30 g/s = 50 detik
+        // Kita pakai ceil() untuk membulatkan ke atas (biar pakan tidak kurang)
+        $calculatedDuration = ceil($request->target_gram / $request->flow_rate);
+
         $device->setting()->update([
-            'feed_duration' => $request->duration,
+            'flow_rate'        => $request->flow_rate,
+            'feed_duration'    => $calculatedDuration, // Simpan hasil hitungan
             'servo_angle_open' => $request->angle,
         ]);
 
-        return back()->with('success', 'Konfigurasi disimpan!');
+        return back()->with('success', "Disimpan! Target {$request->target_gram}g setara dengan {$calculatedDuration} detik.");
     }
 
     // --- FITUR 4: TAMBAH JADWAL ---

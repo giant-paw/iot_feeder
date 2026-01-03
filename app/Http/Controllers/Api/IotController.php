@@ -17,30 +17,31 @@ class IotController extends Controller
 
         if (!$device) return response()->json(['status' => 'error'], 401);
 
-        // Update status online & last seen
         $device->update(['status' => 'ONLINE', 'last_seen' => now()]);
-
         $settings = $device->setting;
         
-        // --- LOGIKA FILTER JADWAL BERDASARKAN HARI ---
-        $today = now()->format('D'); // Mon, Tue, Wed...
+        // Filter Hari
+        $today = now()->format('D'); 
         
+        // AMBIL JADWAL (HANYA JAM:MENIT)
         $schedules = $device->schedules()
             ->where('is_active', true)
             ->get()
             ->filter(function ($schedule) use ($today) {
-                // Ambil data hari (array atau string)
                 $days = is_array($schedule->days) ? $schedule->days : explode(',', $schedule->days);
-                // Loloskan jika hari ini ada di daftar atau jika jadwal "All"
                 return in_array('All', $days) || in_array($today, $days);
             })
-            ->pluck('feed_time') // Hanya ambil jamnya
-            ->values(); // Reset array keys
+            ->map(function ($schedule) {
+                // PENTING: Format jadi H:i (Contoh: "07:00") - HILANGKAN DETIK
+                return \Carbon\Carbon::parse($schedule->feed_time)->format('H:i');
+            })
+            ->values();
 
         return response()->json([
-            'server_time' => now()->format('H:i:s'), // Format Detik penting untuk presisi
-            'force_feed'  => (int) $settings->manual_trigger, // 1 = FEED, 0 = STOP/IDLE
-            'emergency'   => (int) $settings->emergency_stop, // 1 = MATI TOTAL
+            // Kirim Jam Server tanpa detik juga
+            'server_time' => now()->format('H:i'), 
+            'force_feed'  => (int) $settings->manual_trigger,
+            'emergency'   => (int) $settings->emergency_stop,
             'config' => [
                 'duration'    => $settings->feed_duration,
                 'servo_open'  => $settings->servo_angle_open,
